@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=KonqPopupMenu/Plugin
+MimeType=video/*;
+Actions=quick;custom;compress
+
+[Desktop Action quick]
+Name=Transcode audio for Davinci
+Icon=video-x-generic
+# konsole --hold -e
+Exec=~/dev/private/ffmpeg_helper/.venv/bin/python3 ~/dev/private/ffmpeg_helper/main.py "%F" quick
+
+[Desktop Action custom]
+Name=Transcode video
+Icon=video-x-generic
+Exec=~/dev/private/ffmpeg_helper/.venv/bin/python3 ~/dev/private/ffmpeg_helper/main.py "%F" custom
+
+
+[Desktop Action compress]
+Name=Compress video
+Icon=video-x-generic
+Exec=~/dev/private/ffmpeg_helper/.venv/bin/python3 ~/dev/private/ffmpeg_helper/main.py "%F" compress
