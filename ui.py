@@ -3,7 +3,7 @@ import sys
 
 from PyQt6.QtCore import QProcess, QTimer
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar, QPushButton, QApplication, QCheckBox, \
-    QGridLayout, QGroupBox, QComboBox, QSpinBox
+    QGridLayout, QGroupBox, QComboBox, QDoubleSpinBox
 
 import main
 from main import VideoProperties, TranscodeOptions, Command, SISuffix
@@ -134,14 +134,22 @@ class CustomizeWindow(QWidget):
         self.transcode_audio_button = QCheckBox()
         self.transcode_audio_button.setChecked(self.transcoder.transcode_audio)
         self.transcode_audio_button.stateChanged.connect(self.on_change_transcode_audio)
+        self.transcode_audio_button.setToolTip(
+            "AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
         self.transcode_audio_type = QComboBox()
         self.transcode_audio_type.addItem(main.audio_codec_aac)
         self.transcode_audio_type.addItem(main.audio_codec_pcm)
         self.transcode_audio_type.setCurrentText(self.transcoder.audio_codec)
         self.transcode_audio_type.currentTextChanged.connect(self.on_audio_codec)
-        grid.addWidget(QLabel("Transcode audio"), 0, 0)
+        self.transcode_audio_type.setToolTip(
+            "AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        l = QLabel("Transcode audio")
+        l.setToolTip("AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        grid.addWidget(l, 0, 0)
         grid.addWidget(self.transcode_audio_button, 0, 1)
-        grid.addWidget(QLabel("to"), 0, 2)
+        l = QLabel("to")
+        l.setToolTip("AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        grid.addWidget(l, 0, 2)
         grid.addWidget(self.transcode_audio_type, 0, 3)
 
         self.transcode_video_button = QCheckBox()
@@ -154,14 +162,18 @@ class CustomizeWindow(QWidget):
         grid = QGridLayout(self.options_box)
         layout.addWidget(self.options_box)
 
-        fps_options = [24, 29.97, 30.0, 59.94, 60.0]
+        fps_options = [24, 29.97, 30.0, 59.94, 60.0, 90.0, 120.0]
         if self.transcoder.fps not in fps_options:
             fps_options.append(self.transcoder.fps)
         self.fps_dropdown = QComboBox()
         for fps in fps_options: self.fps_dropdown.addItem(str(fps))
         self.fps_dropdown.setCurrentText(str(self.transcoder.fps))
         self.fps_dropdown.currentTextChanged.connect(self.on_fps_changed)
-        grid.addWidget(QLabel("FPS: "), 0, 0)
+        self.fps_dropdown.setToolTip(
+            "Starts with the current FPS of the video or the maximum if multiple videos are selected.")
+        l = QLabel("FPS: ")
+        l.setToolTip("Starts with the current FPS of the video or the maximum if multiple videos are selected.")
+        grid.addWidget(l, 0, 0)
         grid.addWidget(self.fps_dropdown, 0, 1)
 
         res_options = [144, 360, 504, 720, 1080, 1440, 2160]
@@ -171,19 +183,26 @@ class CustomizeWindow(QWidget):
         for res in res_options: self.res_dropdown.addItem(str(res))
         self.res_dropdown.setCurrentText(str(self.transcoder.resolution))
         self.res_dropdown.currentTextChanged.connect(self.on_res_changed)
-        grid.addWidget(QLabel("Resolution: "), 1, 0)
+        self.fps_dropdown.setToolTip(
+            "Starts with the current Resolution of the video or the maximum if multiple videos are selected.")
+        l = QLabel("Resolution (Height in pixel): ")
+        l.setToolTip("Starts with the current Resolution of the video or the maximum if multiple videos are selected.")
+        grid.addWidget(l, 1, 0)
         grid.addWidget(self.res_dropdown, 1, 1)
 
         self.backup_button = QCheckBox()
         self.backup_button.setChecked(self.transcoder.do_backup)
         self.backup_button.stateChanged.connect(self.on_change_backup)
-        grid.addWidget(QLabel("Backup file: "), 2, 0)
+        l = QLabel("Create backup: ")
+        l.setToolTip("Copies the file before transcoding and appends _backup to the name.")
+        grid.addWidget(l, 2, 0)
         grid.addWidget(self.backup_button, 2, 1)
 
         self.backup_folder_button = QCheckBox()
         self.backup_folder_button.setChecked(self.transcoder.backup_folder)
         self.backup_folder_button.stateChanged.connect(self.on_change_backup_folder)
-        self.backup_folder_label = QLabel("Backup in folder: ")
+        self.backup_folder_label = QLabel("Move backup to folder: ")
+        self.backup_folder_label.setToolTip("Creates the file before transcoding and moves to a folder named backup.")
         grid.addWidget(self.backup_folder_label, 3, 0)
         grid.addWidget(self.backup_folder_button, 3, 1)
 
@@ -206,6 +225,7 @@ class CustomizeWindow(QWidget):
         checked = bool(checked)
         self.transcoder.transcode_audio = checked
         self.start_button.setEnabled(self.transcoder.transcode_audio or self.transcoder.transcode_video)
+        self.transcode_audio_type.setEnabled(checked)
 
     def on_change_transcode_video(self, checked: bool):
         checked = bool(checked)
@@ -265,7 +285,11 @@ class CompressWindow(QWidget):
         self.transcode_audio_type.addItem(main.audio_codec_pcm)
         self.transcode_audio_type.setCurrentText(self.transcoder.audio_codec)
         self.transcode_audio_type.currentTextChanged.connect(self.on_audio_codec)
-        grid.addWidget(QLabel("Transcode audio to"), 0, 0)
+        self.transcode_audio_type.setToolTip(
+            "AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        l = QLabel("Transcode audio to")
+        l.setToolTip("AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        grid.addWidget(l, 0, 0)
         grid.addWidget(self.transcode_audio_type, 0, 1)
 
         self.transcode_video_button = QCheckBox()
@@ -285,7 +309,11 @@ class CompressWindow(QWidget):
         for fps in fps_options: self.fps_dropdown.addItem(str(fps))
         self.fps_dropdown.setCurrentText(str(self.transcoder.fps))
         self.fps_dropdown.currentTextChanged.connect(self.on_fps_changed)
-        grid.addWidget(QLabel("FPS: "), 0, 0)
+        self.fps_dropdown.setToolTip(
+            "Starts with the current FPS of the video or the maximum if multiple videos are selected.")
+        l = QLabel("FPS: ")
+        l.setToolTip("Starts with the current FPS of the video or the maximum if multiple videos are selected.")
+        grid.addWidget(l, 0, 0)
         grid.addWidget(self.fps_dropdown, 0, 1)
 
         res_options = [144, 360, 504, 720, 1080, 1440, 2160]
@@ -295,16 +323,22 @@ class CompressWindow(QWidget):
         for res in res_options: self.res_dropdown.addItem(str(res))
         self.res_dropdown.setCurrentText(str(self.transcoder.resolution))
         self.res_dropdown.currentTextChanged.connect(self.on_res_changed)
-        grid.addWidget(QLabel("Resolution: "), 1, 0)
+        self.fps_dropdown.setToolTip(
+            "Starts with the current Resolution of the video or the maximum if multiple videos are selected.")
+        l = QLabel("Resolution (Height in pixel): ")
+        l.setToolTip("Starts with the current Resolution of the video or the maximum if multiple videos are selected.")
+        grid.addWidget(l, 1, 0)
         grid.addWidget(self.res_dropdown, 1, 1)
 
         self.target_size_box = QGroupBox("Target Size")
         grid = QGridLayout(self.target_size_box)
         layout.addWidget(self.target_size_box)
+        self.target_size_box.setToolTip("Starts with a rounded value of the current file size. This does nothing if the entered value is bigger than the current file size.")
 
         target_size_si = main.get_si_suffix(self.transcoder.target_size)
-        self.target_size_field = QSpinBox()
+        self.target_size_field = QDoubleSpinBox()
         self.target_size_field.setRange(1, 999)
+        self.target_size_field.setDecimals(1)
         self.target_size_field.setValue(self.transcoder.target_size // target_size_si.factor + 1)
         self.target_size_field.valueChanged.connect(self.on_target_size_changed)
         grid.addWidget(self.target_size_field, 0, 0)
