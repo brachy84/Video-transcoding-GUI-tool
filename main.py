@@ -13,6 +13,7 @@ import ui
 
 
 audio_codec_aac = "aac"
+audio_codec_flac = "flac"
 audio_codec_pcm = "pcm_s16le"
 
 
@@ -156,7 +157,11 @@ class TranscodeOptions:
         self._add_video_options(vid, do_transcode_v, cmd1, True)
         self._add_video_options(vid, do_transcode_v, cmd2, True)
 
-        bit_rate = str(self.calc_bitrate(vid))
+        audio_bitrate = vid.audio_bitrate
+        if self.audio_codec == audio_codec_aac:
+            audio_bitrate = 128_000
+
+        bit_rate = str(self.calc_bitrate(vid.duration, audio_bitrate))
         cmd1.append("-b:v")
         cmd2.append("-b:v")
         cmd1.append(bit_rate)
@@ -173,6 +178,9 @@ class TranscodeOptions:
         cmd1.append("/dev/null")
 
         self._add_audio_options(vid, do_transcode_a, cmd2, True)
+        if self.audio_codec == audio_codec_aac:
+            cmd2.append("-b:a")
+            cmd2.append("128k")
 
         si_suffix = get_si_suffix(self.target_size)
         s = self.target_size / si_suffix.factor
@@ -187,7 +195,7 @@ class TranscodeOptions:
             return None
         return [Command(vid, "ffmpeg", cmd1, None, False), Command(vid, "ffmpeg", cmd2, output, False)]
 
-    def _add_video_options(self, vid: VideoProperties, do_transcode: bool, opt: list[str], always_codec: bool):
+    def _add_video_options(self, vid: VideoProperties, do_transcode: bool, opt: list[str], compress: bool):
         opt.append("-c:v")
         if do_transcode:
             opt.append("libx264")
@@ -196,11 +204,12 @@ class TranscodeOptions:
             w = int(vid.width * scale)
             h = int(self.resolution)
             opt.append(f"scale={w}:{h},fps={self.fps}")
-            opt.append("-crf")
-            opt.append("18")
-            opt.append("-preset")
-            opt.append("medium")
-        elif always_codec:
+            if not compress:
+                opt.append("-crf")
+                opt.append("18")
+                opt.append("-preset")
+                opt.append("medium")
+        elif compress:
             opt.append("libx264")
         else:
             opt.append("copy")
@@ -212,9 +221,10 @@ class TranscodeOptions:
         else:
             opt.append("copy")
 
-    def calc_bitrate(self, video: VideoProperties):
-        cbr = video.get_container_bit_rate() + 50_000  # safety
-        return self.target_size * 8 / video.duration - video.audio_bitrate - cbr
+    def calc_bitrate(self, duration: float, audio_bitrate: int):
+        #cbr = video.get_container_bit_rate() + 50_000  # safety
+        #return self.target_size * 8 / video.duration - video.audio_bitrate - cbr
+        return self.target_size * 8 / duration - audio_bitrate - 50_000
 
 
 def _get_raw_properties(path: Path):

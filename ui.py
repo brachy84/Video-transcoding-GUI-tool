@@ -103,7 +103,7 @@ def _transcoder_of(videos: list[VideoProperties], with_size: bool):
     if len(videos) == 1:
         v = videos[0]
         size = v.size if with_size else -1
-        return TranscodeOptions(True, True, main.audio_codec_pcm, v.fps, v.height, True, False, size)
+        return TranscodeOptions(True, True, v.audio_codec, v.fps, v.height, True, False, size)
     max_fps = 0
     max_res = 0
     size = -1
@@ -112,7 +112,7 @@ def _transcoder_of(videos: list[VideoProperties], with_size: bool):
         max_res = max(max_res, v.height)
         if with_size:
             size = min(size, v.size)
-    return TranscodeOptions(True, True, main.audio_codec_pcm, max_fps, max_res, True, True, size)
+    return TranscodeOptions(True, True, main.audio_codec_aac, max_fps, max_res, True, True, size)
 
 
 class CustomizeWindow(QWidget):
@@ -122,6 +122,7 @@ class CustomizeWindow(QWidget):
         self.transcoder: TranscodeOptions = _transcoder_of(videos, False)
         self.process_window: TranscodeWindow | None = None
         self.transcoder.target_size = -1
+        self.transcoder.audio_codec = main.audio_codec_pcm
 
         self.setWindowTitle("FFmpeg Transcoder")
 
@@ -270,6 +271,7 @@ class CompressWindow(QWidget):
         self.transcoder.backup_folder = False
         self.transcoder.transcode_audio = True
         self.transcoder.transcode_video = False
+        self.og_audio_codec: str = self.transcoder.audio_codec
         self.transcoder.audio_codec = main.audio_codec_aac
 
         self.setWindowTitle("FFmpeg Transcoder")
@@ -280,17 +282,15 @@ class CompressWindow(QWidget):
         grid = QGridLayout(self._start_grid)
         layout.addWidget(self._start_grid)
 
-        self.transcode_audio_type = QComboBox()
-        self.transcode_audio_type.addItem(main.audio_codec_aac)
-        self.transcode_audio_type.addItem(main.audio_codec_pcm)
-        self.transcode_audio_type.setCurrentText(self.transcoder.audio_codec)
-        self.transcode_audio_type.currentTextChanged.connect(self.on_audio_codec)
-        self.transcode_audio_type.setToolTip(
-            "AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
-        l = QLabel("Transcode audio to")
-        l.setToolTip("AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
+        self.transcode_audio_button = QCheckBox()
+        self.transcode_audio_button.setChecked(True)
+        self.transcode_audio_button.stateChanged.connect(self.on_change_transcode_audio)
+        self.transcode_audio_button.setToolTip("AAC is a low bitrate codec and is recommended for compression.")
+
+        l = QLabel("Transcode audio to AAC")
+        l.setToolTip("AAC is a low bitrate codec and is recommended for compression.")
         grid.addWidget(l, 0, 0)
-        grid.addWidget(self.transcode_audio_type, 0, 1)
+        grid.addWidget(self.transcode_audio_button, 0, 1)
 
         self.transcode_video_button = QCheckBox()
         self.transcode_video_button.setChecked(self.transcoder.transcode_video)
@@ -368,8 +368,9 @@ class CompressWindow(QWidget):
         self.start_button.setEnabled(self.transcoder.transcode_audio or self.transcoder.transcode_video)
         self.options_box.setEnabled(checked)
 
-    def on_audio_codec(self, text):
-        self.transcoder.audio_codec = str(text)
+    def on_change_transcode_audio(self, checked: bool):
+        checked = bool(checked)
+        self.transcoder.audio_codec = main.audio_codec_aac if checked else self.og_audio_codec
 
     def on_fps_changed(self, text):
         self.transcoder.fps = float(text)
