@@ -139,6 +139,7 @@ class CustomizeWindow(QWidget):
             "AAC is the standard codec, but it doesn't work with DaVinci Resolve on Linux.")
         self.transcode_audio_type = QComboBox()
         self.transcode_audio_type.addItem(main.audio_codec_aac)
+        self.transcode_audio_type.addItem(main.audio_codec_flac)
         self.transcode_audio_type.addItem(main.audio_codec_pcm)
         self.transcode_audio_type.setCurrentText(self.transcoder.audio_codec)
         self.transcode_audio_type.currentTextChanged.connect(self.on_audio_codec)
