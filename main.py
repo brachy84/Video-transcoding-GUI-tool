@@ -393,4 +393,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-    #run_transcoder([Path('/mnt/games/VideoEditing/amadea/intro_dlc.mp4')], audio_codec_aac, False)
