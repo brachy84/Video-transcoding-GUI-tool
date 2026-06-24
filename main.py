@@ -60,6 +60,7 @@ class VideoProperties:
 @dataclass
 class Command:
     video: VideoProperties
+    backup: Path | None
     cmd: str
     options: list[str]
     output: Path | None
@@ -93,8 +94,8 @@ class Command:
         process.start(self.cmd, options)
 
     def on_finish(self):
-        if self.delete_on_finish and self.video.path.exists():
-            os.remove(self.video.path)
+        if self.delete_on_finish and self.backup and self.backup.exists():
+            os.remove(self.backup)
 
     def __str__(self):
         return " ".join(self.get_cmd())
@@ -118,6 +119,7 @@ class TranscodeOptions:
             print(f"Skipping {prop.path}. Nothing to transcode.")
             return None
 
+        backup = None
         cmd = ["-i"]
         if self.do_backup and self.backup_folder:
             backup = prop.path.parent / "backup"
@@ -130,7 +132,7 @@ class TranscodeOptions:
         else:
             n = prop.path.stem + "_backup" + prop.path.suffix
             input = prop.path.parent / n
-            prop.path.replace(input)
+            backup = prop.path.replace(input)
             delete_on_finish = not self.do_backup
 
         cmd.append(str(input))
@@ -138,8 +140,7 @@ class TranscodeOptions:
         self._add_video_options(prop, do_transcode_v, cmd, False)
         self._add_audio_options(prop, do_transcode_a, cmd, False)
 
-        output = _get_output(prop.path)
-        return Command(prop, "ffmpeg", cmd, output, delete_on_finish)
+        return Command(prop, backup, "ffmpeg", cmd, prop.path, delete_on_finish)
 
     def transcode_compress_command(self, vid: VideoProperties) -> list[Command] | None:
         do_transcode_a = self.transcode_audio and vid.audio_codec != self.audio_codec
@@ -324,7 +325,7 @@ def _reload_from_backup(path: Path):
     b1 = backup1.exists()
     b2 = backup2.exists()
     if b1 or b2:
-        out = _get_output(path)
+        out = path
         if path.exists():
             os.remove(path)
         if out.exists():
@@ -336,14 +337,17 @@ def _reload_from_backup(path: Path):
     pass
 
 
-def run_transcoder(paths: list[Path]):
+def run_transcoder(paths: list[Path], codec: str, backup: bool):
     commands: list[Command] = []
     for path in paths:
         #_reload_from_backup(path)
         prop = parse_video_properties(path)
         if prop is None: continue
+        if prop.audio_codec == codec:
+            print(f"Video {path} already has {codec} audio codec")
+            continue
         print(f"Video: {prop}")
-        transcoder = TranscodeOptions(True, False, audio_codec_pcm, 60.0, 1920, True, True, -1)
+        transcoder = TranscodeOptions(True, False, codec, prop.fps, prop.width, backup, backup, -1)
         cmd = transcoder.transcode_command(prop)
         if cmd is None: continue
         commands.append(cmd)
@@ -375,8 +379,10 @@ def run():
 
     paths = _parse_path_list(sys.argv[1])
     type = sys.argv[2]
-    if type == "quick":
-        run_transcoder(paths)
+    if type == "quick_to_davinci":
+        run_transcoder(paths, audio_codec_pcm, True)
+    elif type == "quick_from_davinci":
+        run_transcoder(paths, audio_codec_aac, False)
     elif type == "custom":
         run_customizable_transcoder(paths, False)
     elif type == "compress":
@@ -387,3 +393,4 @@ def run():
 
 if __name__ == "__main__":
     run()
+    #run_transcoder([Path('/mnt/games/VideoEditing/amadea/intro_dlc.mp4')], audio_codec_aac, False)
